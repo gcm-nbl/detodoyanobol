@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Carrito | DeTodoYa NOBOL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+ margin:0;
+ font-family:Arial, sans-serif;
+ background:#f5f5f5;
+}
+header{
+ background:#000;
+ color:#ffd400;
+ padding:20px;
+ text-align:center;
+}
+.container{
+ max-width:900px;
+ margin:auto;
+ padding:20px;
+}
+
+/* ITEM */
+.item{
+ background:#fff;
+ padding:10px;
+ margin-bottom:10px;
+ display:flex;
+ align-items:center;
+ gap:15px;
+ border-radius:8px;
+}
+.item img{
+ width:60px;
+ height:60px;
+ object-fit:cover;
+ border-radius:6px;
+}
+.item-info{flex:1;}
+.item-precio{font-weight:bold;}
+.item button{
+ background:#ff4d4d;
+ color:#fff;
+ border:none;
+ border-radius:6px;
+ padding:6px 10px;
+ cursor:pointer;
+}
+
+/* TOTALES */
+.line{
+ display:flex;
+ justify-content:space-between;
+ margin-top:8px;
+}
+.total{
+ font-size:18px;
+ font-weight:bold;
+}
+
+/* FORM */
+label{margin-top:15px;display:block;font-weight:bold;}
+select,input{
+ width:100%;
+ padding:8px;
+ margin-top:6px;
+ border-radius:6px;
+ border:1px solid #ccc;
+}
+button.enviar{
+ background:#ffd400;
+ border:none;
+ padding:12px;
+ width:100%;
+ margin-top:20px;
+ border-radius:8px;
+ font-weight:bold;
+ cursor:pointer;
+}
+.hidden{display:none;}
+</style>
+</head>
+
+<body>
+
+<header>
+ <h2>🛒 Carrito de compras</h2>
+</header>
+
+<div class="container">
+
+<div id="lista"></div>
+
+<div class="line">
+ <span>Subtotal</span>
+ <span>$<span id="subtotal">0</span></span>
+</div>
+
+<label>🚚 Envío</label>
+<select id="envio" onchange="calcularTotal()">
+ <option value="0">Retiro en local - $0</option>
+ <option value="3">Envío cercano - $3</option>
+ <option value="5">Envío lejano - $5</option>
+</select>
+
+<div class="line hidden" id="recargoPayphone">
+ <span>Recargo PayPhone (5%)</span>
+ <span>$<span id="recargo">0</span></span>
+</div>
+
+<div class="line total">
+ <span>TOTAL A PAGAR</span>
+ <span>$<span id="total">0</span></span>
+</div>
+
+<hr>
+
+<h3>👤 Datos del cliente</h3>
+<input id="nombre" placeholder="Nombre completo">
+<input id="cedula" placeholder="Cédula">
+<input id="direccion" placeholder="Dirección de entrega">
+
+<hr>
+
+<h3>💳 Método de pago</h3>
+<select id="pago" onchange="mostrarPago();calcularTotal()">
+ <option value="">Seleccione</option>
+ <option value="tarjeta">Tarjeta (PayPhone)</option>
+ <option value="transferencia">Transferencia / Depósito</option>
+ <option value="efectivo">Efectivo</option>
+</select>
+
+<!-- PAYPHONE -->
+<div id="tarjeta" class="hidden">
+ <p>🔐 El pago con tarjeta se realiza en PayPhone</p>
+ <button type="button" onclick="abrirPayphone()">💳 Pagar con PayPhone</button>
+
+ <label>Referencia PayPhone</label>
+ <input id="pfReferencia">
+
+ <label>Código de autorización</label>
+ <input id="pfAutorizacion">
+</div>
+
+<!-- TRANSFERENCIA -->
+<div id="transferencia" class="hidden">
+ <label>Banco o billetera</label>
+ <input id="banco">
+
+ <label>Número de transacción</label>
+ <input id="transaccion">
+</div>
+
+<button class="enviar" onclick="enviar()">📲 Enviar pedido por WhatsApp</button>
+
+</div>
+
+<script>
+const PAYPHONE_URL = "https://ppls.me/tZCHfINrIViYn1wk0cRxpg";
+
+let carrito = JSON.parse(localStorage.getItem("carritoNOBOL")) || [];
+let lista = document.getElementById("lista");
+
+function mostrar(){
+ let sub=0;
+ lista.innerHTML="";
+ carrito.forEach((p,i)=>{
+  sub+=p.precio;
+  lista.innerHTML+=`
+   <div class="item">
+    <img src="${p.imagen}">
+    <div class="item-info">
+     <div>${p.nombre}</div>
+     <div class="item-precio">$${p.precio}</div>
+    </div>
+    <button onclick="eliminar(${i})">❌</button>
+   </div>
+  `;
+ });
+ document.getElementById("subtotal").innerText=sub.toFixed(2);
+ calcularTotal();
+}
+
+function eliminar(i){
+ carrito.splice(i,1);
+ localStorage.setItem("carritoNOBOL",JSON.stringify(carrito));
+ mostrar();
+}
+
+function calcularTotal(){
+ let subtotal = parseFloat(document.getElementById("subtotal").innerText);
+ let envio = parseFloat(document.getElementById("envio").value);
+ let total = subtotal + envio;
+ let recargo = 0;
+
+ if(pago.value === "tarjeta"){
+  recargo = total * 0.05;
+  document.getElementById("recargo").innerText = recargo.toFixed(2);
+  document.getElementById("recargoPayphone").classList.remove("hidden");
+ }else{
+  document.getElementById("recargoPayphone").classList.add("hidden");
+ }
+
+ document.getElementById("total").innerText = (total + recargo).toFixed(2);
+}
+
+function mostrarPago(){
+ tarjeta.classList.add("hidden");
+ transferencia.classList.add("hidden");
+ if(pago.value==="tarjeta") tarjeta.classList.remove("hidden");
+ if(pago.value==="transferencia") transferencia.classList.remove("hidden");
+}
+
+function abrirPayphone(){
+ window.open(PAYPHONE_URL,"_blank");
+}
+
+function enviar(){
+ let msg="🛒 *Pedido DeTodoYa NOBOL*%0A%0A";
+ carrito.forEach(p=>{
+  msg+=`• ${p.nombre} $${p.precio}%0A`;
+ });
+ msg+=`%0A👤 Nombre: ${nombre.value}`;
+ msg+=`%0A📍 Dirección: ${direccion.value}`;
+ msg+=`%0A💳 Pago: ${pago.value}`;
+ msg+=`%0A💰 Total: $${total.innerText}`;
+
+ if(pago.value==="tarjeta"){
+  msg+=`%0A🧾 Ref PayPhone: ${pfReferencia.value}`;
+  msg+=`%0A🔐 Autorización: ${pfAutorizacion.value}`;
+ }
+
+ window.open("https://wa.me/593963660301?text="+msg,"_blank");
+}
+
+mostrar();
+</script>
+
+</body>
+</html>
